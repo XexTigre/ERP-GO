@@ -8,28 +8,53 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
-        image: postgres:18
+        image: postgres:18.6
         env:
           POSTGRES_DB: erpgo_test
           POSTGRES_USER: erpgo_test
           POSTGRES_PASSWORD: ci-test-only
-        ports:
-          - 5432:5432
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U erpgo_test -d erpgo_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
+          --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       TEST_DATABASE_URL: postgres://erpgo_test:ci-test-only@localhost:5432/erpgo_test?sslmode=disable
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: go.mod
+          go-version: 1.27.2
           cache: true
       - run: go mod download
+      - run: go mod tidy && git diff --exit-code -- go.mod go.sum
       - run: make check test integration build
+      - run: go test -race -coverprofile=coverage.out ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+      - name: Lint
+        run: |
+          curl -fsSL https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz -o "$RUNNER_TEMP/lint.tar.gz"
+          echo "9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea  $RUNNER_TEMP/lint.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/lint.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/golangci-lint-2.15.0-linux-amd64/golangci-lint" run
+      - name: Backup e restore em banco descartável
+        env:
+          DATABASE_URL: postgres://erpgo_test:ci-test-only@localhost:5432/erpgo_test?sslmode=disable
+          RESTORE_DATABASE_URL: postgres://erpgo_test:ci-test-only@localhost:5432/erpgo_restore_test?sslmode=disable
+          PGPASSWORD: ci-test-only
+        run: |
+          go run ./cmd/erpctl migrate
+          createdb -h localhost -U erpgo_test erpgo_restore_test
+          deploy/backup/backup.sh "$RUNNER_TEMP/erpgo.dump"
+          deploy/backup/restore-test.sh "$RUNNER_TEMP/erpgo.dump"
+          test "$(psql "$RESTORE_DATABASE_URL" -XAt -c 'SELECT count(*) FROM schema_migrations')" = 4
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:web

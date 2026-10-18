@@ -11,3 +11,7 @@
 *.dump
 *.sql.gz
 *.pdf
+
+/node_modules/
+/test-results/
+/dist/
