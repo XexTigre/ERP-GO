@@ -54,8 +54,9 @@ func testStore(t *testing.T) *postgres.Store {
 		admin.Close()
 		t.Fatal(err)
 	}
-	cfg.ConnConfig.RuntimeParams["search_path"] = schema + ",public"
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	testConfig := cfg.Copy()
+	testConfig.ConnConfig.RuntimeParams["search_path"] = schema + ",public"
+	pool, err := pgxpool.NewWithConfig(ctx, testConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
