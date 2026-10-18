@@ -1,0 +1,38 @@
+package httpapi
+
+import (
+	"io"
+	"log/slog"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestAnonymousCannotMutate(t *testing.T) {
+	handler := New(nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	for _, path := range []string{"/v1/brands", "/v1/branches", "/v1/products", "/v1/movements"} {
+		request := httptest.NewRequest("POST", path, strings.NewReader(`{}`))
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != 401 {
+			t.Fatalf("%s: %d", path, response.Code)
+		}
+		if response.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("cache indevido")
+		}
+	}
+}
+
+func TestDecoderRejectsUnexpectedJSON(t *testing.T) {
+	for _, body := range []string{`{"name":"Teste","tenant_id":"outro"}`, `{"name":"Teste"} {}`, `{`, `{"name":"` + strings.Repeat("x", 65536) + `"}`} {
+		r := httptest.NewRequest("POST", "/", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		var in struct {
+			Name string `json:"name"`
+		}
+		if decode(w, r, &in) {
+			t.Fatal("JSON ambiguo aceito")
+		}
+	}
+}
