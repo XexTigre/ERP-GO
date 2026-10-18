@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>GO ERP · Catálogo e estoque · V1</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main-catalog">Pular para o conteúdo</a>
+  <header class="previewbar">
+    <div><strong>GO ERP · V1</strong><small>Protótipo com dados sintéticos · sem gravação no banco</small></div>
+    <div class="preview-options">
+      <label for="branchCount">Lojas no exemplo</label>
+      <select id="branchCount"><option>1</option><option>2</option><option selected>4</option><option>12</option></select>
+      <label class="check" for="offlineToggle"><input id="offlineToggle" type="checkbox">Simular sem conexão</label>
+    </div>
+  </header>
+  <div class="stage" id="app"></div>
+  <dialog id="dialog" aria-labelledby="dialogTitle" aria-describedby="dialogIntro">
+    <h2 id="dialogTitle">Revisar movimento</h2>
+    <p id="dialogIntro">Confira a loja, a quantidade e o motivo. Esta operação é uma simulação local.</p>
+    <div id="dialogBody" class="form-stack"></div>
+    <div class="dialog-actions"><button class="btn" id="cancelDialog" autofocus>Voltar</button><button class="btn primary" id="confirmDialog">Confirmar simulação</button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

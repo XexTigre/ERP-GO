@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+bin
+node_modules
+coverage.out
+dist
+backups
+exports
+test-results
