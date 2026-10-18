@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+/bin/
+/coverage.out
+/tmp/
+/data/
+/backups/
+/exports/
+*.log
+*.dump
+*.sql.gz
+*.pdf
